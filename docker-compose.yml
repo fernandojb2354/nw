@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # 1. La Base de Datos (MySQL)
+  db:
+    image: mysql:8.0
+    container_name: b2b-db
+    restart: always
+    environment:
+      MYSQL_DATABASE: b2b_orders
+      MYSQL_ROOT_PASSWORD: password
+    ports:
+      - "3307:3306" 
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d 
+
+  # 2. API de Clientes
+  customers-api:
+    build: ./customers-api
+    container_name: customers-service
+    ports:
+      - "3001:3001"
+    environment:
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - DB_NAME=b2b_orders
+      - SERVICE_TOKEN=secret_token_123
+    depends_on:
+      - db
+
+  # 3. API de Órdenes
+  orders-api:
+    build: ./orders-api
+    container_name: orders-service
+    ports:
+      - "3002:3002"
+    environment:
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - DB_NAME=b2b_orders
+      - CUSTOMERS_API_URL=http://customers-api:3001
+    depends_on:
+      - db
+      - customers-api
+
+networks:
+  default:
+    name: b2b-network
